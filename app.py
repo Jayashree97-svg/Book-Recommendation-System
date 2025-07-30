@@ -10,7 +10,7 @@ from streamlit_lottie import st_lottie
 
 st.set_page_config(layout="wide", page_title="Book Recommender 📚", page_icon="📖")
 
-GOOGLE_BOOKS_API_KEY = "AIzaSyAASSqe_S_Kb-uPYwRQKP1lP69K-MxfSyw"
+GOOGLE_BOOKS_API_KEY = st.secrets["google_api_key"]
 GOOGLE_API_URL = "https://www.googleapis.com/books/v1/volumes?q=intitle:{}&key=" + GOOGLE_BOOKS_API_KEY
 BOOK_RECOMMENDER_LOGO = "Book-recommender-logo.png"
 
@@ -243,7 +243,7 @@ if st.session_state.logged_in and st.session_state.show_main_app:
     st.success("Data loaded! Ready to recommend. ✅")
 
     # --------------------------- GOOGLE BOOKS API ---------------------------
-    def get_book_info_from_google(title, retries=3, delay=1):
+    def get_book_info_from_google(title, retries=3, delay=3):
         query = quote(title)
         full_url = GOOGLE_API_URL.format(query)
         for attempt in range(retries):
@@ -253,10 +253,14 @@ if st.session_state.logged_in and st.session_state.show_main_app:
                     items = response.json().get('items')
                     if items:
                         volume_info = items[0].get('volumeInfo', {})
+                        image_url = volume_info.get('imageLinks', {}).get('thumbnail', '')
+                        # Ensure image URL uses HTTPS
+                        if image_url and image_url.startswith('http://'):
+                            image_url = image_url.replace('http://', 'https://')
                         return {
                             'title': volume_info.get('title', title),
                             'author': ', '.join(volume_info.get('authors', ['Unknown'])),
-                            'image_url': volume_info.get('imageLinks', {}).get('thumbnail', ''),
+                            'image_url': image_url,
                             'description': volume_info.get('description', 'No description available.'),
                             'publisher': volume_info.get('publisher', 'Unknown')
                         }
